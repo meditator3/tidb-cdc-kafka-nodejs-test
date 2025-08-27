@@ -105,7 +105,7 @@ services:
   init-tidb:
     image: pingcap/tidb:latest
     depends_on:
-      - tidb-server
+      - tidb
     volumes:
       - ./init-db.sql:/init-db.sql
     entrypoint: ["sh", "-c"]
@@ -175,4 +175,5 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
+
 
