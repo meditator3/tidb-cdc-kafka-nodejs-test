@@ -105,26 +105,17 @@ services:
   # init DB container
   init-tidb:
     image: pingcap/tidb:latest
-    container_name: tidb-init
     depends_on:
-      tidb:
-        condition: service_healthy  # Wait for healthcheck to pass
+      - tidb
     volumes:
       - ./init-db.sql:/init-db.sql
     entrypoint: ["sh", "-c"]
     command: >
-      "echo 'Waiting for TiDB to be ready...';
-      until mysql -h tidb-server -P4000 -uroot -e 'SELECT 1' >/dev/null 2>&1; do
-        echo 'TiDB not ready, waiting...';
-        sleep 2;
-      done;
-      echo 'TiDB is ready, running init script...';
-      mysql -h tidb-server -P4000 -uroot < /init-db.sql;
-      echo 'Database initialization complete!';"
-    restart: "no"
+      "until nc -z tidb-server 4000; do sleep 2; done;
+      mysql -h tidb-server -P4000 -uroot < /init-db.sql"
     networks:
       - tidb-net
-      
+
   ticdc:
     build:
       context: ./
