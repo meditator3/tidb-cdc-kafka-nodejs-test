@@ -79,36 +79,49 @@ async function getConnection() {
   });
 }
 // init db if necessary
-async function initDatabase() {
-  try {
-    console.log('Testing TiDB connection...');
-    const connection = await getConnection();
-    console.log('Connected to TiDB successfully!');
-    
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        username VARCHAR(100) UNIQUE,
-        password VARCHAR(100),
-        email VARCHAR(60) UNIQUE,
-        password_hash VARCHAR(200) NOT NULL
-      )
-    `);
+async function initDatabase(retries = 10) {
+ for (let i = 0; i < retries; i++) {
+   try {
+     console.log(`Testing TiDB connection... (attempt ${i + 1}/${retries})`);
+     const connection = await getConnection();
+     console.log('Connected to TiDB successfully!');
+     
      await connection.execute(`
-      CREATE TABLE IF NOT EXISTS user_tokens (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT NOT NULL,
-        token VARCHAR(500) NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
-    console.log('Table created/verified');
-    await connection.end();
-  } catch (error) {
-    console.error('Database connection failed:', error.message);
-  }
+       CREATE TABLE IF NOT EXISTS users (
+         id INT PRIMARY KEY AUTO_INCREMENT,
+         username VARCHAR(100) UNIQUE,
+         password VARCHAR(100),
+         email VARCHAR(60) UNIQUE,
+         password_hash VARCHAR(200) NOT NULL
+       )
+     `);
+     
+     await connection.execute(`
+       CREATE TABLE IF NOT EXISTS user_tokens (
+         id INT PRIMARY KEY AUTO_INCREMENT,
+         user_id INT NOT NULL,
+         token VARCHAR(500) NOT NULL,
+         expires_at TIMESTAMP NOT NULL,
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+       )
+     `);
+     
+     console.log('Tables created/verified successfully!');
+     await connection.end();
+     return; // Success - exit retry loop
+     
+   } catch (error) {
+     console.error(`Database connection failed (attempt ${i + 1}):`, error.message);
+     
+     if (i < retries - 1) {
+       console.log('Retrying in 5 seconds...');
+       await new Promise(r => setTimeout(r, 5000));
+     } else {
+       console.error('Failed to connect to database after all retries. Server may not work properly.');
+     }
+   }
+ }
 }
 
 // auth token 
@@ -262,5 +275,4 @@ app.post('/api/login', async (req, res) => {
 app.listen(3000, () => {
   console.log('Server on http://localhost:3000');
   setTimeout(initDatabase, 10000); // Wait 10 seconds
-
 });
