@@ -11,3 +11,6 @@ scripts: init-db.sql inits 2 tables- one for users, one for user_tokens to save 
 tokens are sended via headers, but no real auth was managed to preserve session with jwt, as it needs ajax or more complex FE than simple HTML (to deliver header for auth)
   but as said, the jwToken is indeed in header in the backend script.
 
+kafka is using logs4js and is logging it straight to backend console, for us to see the broker is really working and parsing the user_id etc..
+
+can see the jpg for verification. 
