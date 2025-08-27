@@ -92,9 +92,9 @@ services:
     ports:
       - "4000:4000"
       - "10080:10080"
-    command:
-      - --store=tikv
-      - --path=pd:2379
+    environment:
+      TIDB_STORE: tikv
+      TIDB_PATH: pd:2379
     depends_on:
       - pd
       - tikv
