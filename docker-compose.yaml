@@ -165,10 +165,19 @@ services:
     image: mysql:8.0
     container_name: tidb-mysql-client
     command: tail -f /dev/null  # Keep container running
-    depends_on:
-      - tidb
-    networks:
-      - tidb-net
+    volumes:
+    - ./init-db.sql:/init-db.sql
+    entrypoint: >
+      bash -c "
+      sleep 25 &&
+      mysql -h tidb-server -P4000 -uroot < /init-db.sql &&
+      echo 'Database initialized successfully!' &&
+      tail -f /dev/null
+      "
+      depends_on:
+        - tidb
+      networks:
+        - tidb-net
 volumes:
   pd_data:
   tikv_data:
@@ -176,5 +185,6 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
+
 
 
