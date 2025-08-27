@@ -115,6 +115,7 @@ services:
     networks:
       - tidb-net
 
+
   ticdc:
     build:
       context: ./
@@ -170,7 +171,7 @@ services:
     entrypoint: >
       bash -c "
       sleep 25 &&
-      mysql -h tidb-server -P4000 -uroot < /init-db.sql &&
+      mysql -h tidb -P4000 -uroot < /init-db.sql &&
       echo 'Database initialized successfully!' &&
       tail -f /dev/null
       "
@@ -185,6 +186,3 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
-
-
-
