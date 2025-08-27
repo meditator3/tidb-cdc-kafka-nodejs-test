@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS testdb;
+
 USE testdb;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -9,4 +11,5 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, email, password_hash) VALUES
 ('default_user', 'default@default.com', '$2b$10$tWfCAlbchsRjDztrEJOWrugPtH54dqFz4H/ruafjpEzm63SqNHLta')
+
 ON DUPLICATE KEY UPDATE username=username;
