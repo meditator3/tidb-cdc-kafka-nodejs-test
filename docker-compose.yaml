@@ -1,0 +1,165 @@
+
+services:
+  zookeeper:
+    image: zookeeper:3.8
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - tidb-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1  # tell kafka to use only 1 single broker cause it looks for default=3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAME_INTERNAL_LISTENER: INTERNAL
+      KAFKA_LISTENER_NAME_EXTERNAL_LISTENER: EXTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_INTERNAL: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_EXTERNAL: PLAINTEXT
+    depends_on:
+      - zookeeper
+    networks:
+      - tidb-net
+
+  pd:
+    build:
+      context: ./
+      dockerfile: Dockerfile-pd
+    container_name: tidb-pd
+    ports:
+      - "2379:2379"
+    command:
+      - --name=pd
+      - --data-dir=/data/pd
+      - --client-urls=http://0.0.0.0:2379
+      - --advertise-peer-urls=http://pd:2380
+      - --advertise-client-urls=http://pd:2379
+      - --peer-urls=http://0.0.0.0:2380
+      - --initial-cluster=pd=http://pd:2380
+    volumes:
+      - pd_data:/data
+    networks:
+      - tidb-net
+  ticdc-cli:  # this is a helper container running once to apply changefeed+inform cdc container to intercept changes
+    build:
+      context: ./
+      dockerfile: Dockerfile-ticdc-cli
+    container_name: ticdc-cli
+    depends_on:
+      - pd
+      - tidb
+    networks:
+      - tidb-net
+    entrypoint: ["sh", "-c"]
+    command: >
+      /cdc changefeed create
+      --pd=http://pd:2379
+      --sink-uri="kafka://kafka:9092/?topic=tidb_changes"
+      --changefeed-id="testdb_cdc"
+      --filter=".*\.users,.*\.user_tokens"
+  tikv:
+    build:
+      context: ./
+      dockerfile: Dockerfile-tikv
+    container_name: tidb-tikv
+    ports:
+      - "20160:20160"
+    command:
+      - --addr=0.0.0.0:20160
+      - --advertise-addr=tikv:20160
+      - --data-dir=/data/tikv
+      - --pd=pd:2379
+    volumes:
+      - tikv_data:/data
+    depends_on:
+      - pd
+    networks:
+      - tidb-net
+
+  tidb:
+    build:
+      context: ./
+      dockerfile: Dockerfile-tidb
+    container_name: tidb-server
+    ports:
+      - "4000:4000"
+      - "10080:10080"
+    command:
+      - --store=tikv
+      - --path=pd:2379
+    depends_on:
+      - pd
+      - tikv
+    networks:
+      - tidb-net
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  
+
+  ticdc:
+    build:
+      context: ./
+      dockerfile: Dockerfile-ticdc-cli # (uses same image as cli)
+    container_name: tidb-cdc
+    ports:
+      - "8300:8300"
+    command:
+      - /cdc
+      - server
+      - --pd=http://pd:2379
+      - --addr=0.0.0.0:8300
+      - --advertise-addr=tidb-cdc:8300
+      - --data-dir=/cdc_data
+      - --log-file=/tmp/ticdc.log
+      
+    volumes:
+    - ./cdc_data:/cdc_data  
+    depends_on:
+      - pd
+      - tikv
+      - tidb
+    networks:
+      - tidb-net
+      
+  webapp:
+    build:
+      context: ./
+      dockerfile: Dockerfile-webapp
+    container_name: tidb-webapp
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
+    
+    depends_on:
+      - tidb
+      - kafka
+      
+    networks:
+      - tidb-net
+
+  # MySQL client for easy database access(no mysql client in default tidb)
+  mysql-client:
+    image: mysql:8.0
+    container_name: tidb-mysql-client
+    command: tail -f /dev/null  # Keep container running
+    depends_on:
+      - tidb
+    networks:
+      - tidb-net
+volumes:
+  pd_data:
+  tikv_data:
+
+networks:
+  tidb-net:
+    driver: bridge
