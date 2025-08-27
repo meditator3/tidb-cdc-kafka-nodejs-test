@@ -68,23 +68,37 @@ async function startConsumer() {
 
 startConsumer().catch(console.error);
 
-// start connection with testdb 
-async function getConnection() {
+// start connection without db 
+async function getSetupConnection() {
   return mysql.createConnection({
     host: 'tidb',
     port: 4000,
     user: 'root',
-    password: '',
-    database: 'testdb'
+    password: ''
   });
 }
+// init db with testdb if necessary
+async function getConnection() {
+ return mysql.createConnection({
+   host: 'tidb',
+   port: 4000,
+   user: 'root',
+   password: '',
+   database: 'testdb'
+ });
+}
+
 // init db if necessary
 async function initDatabase(retries = 10) {
  for (let i = 0; i < retries; i++) {
    try {
      console.log(`Testing TiDB connection... (attempt ${i + 1}/${retries})`);
-     const connection = await getConnection();
+     const connection = await getSetupConnection(); // Use setup connection
      console.log('Connected to TiDB successfully!');
+     
+     
+     await connection.execute('CREATE DATABASE IF NOT EXISTS testdb');
+     await connection.execute('USE testdb');
      
      await connection.execute(`
        CREATE TABLE IF NOT EXISTS users (
@@ -109,11 +123,11 @@ async function initDatabase(retries = 10) {
      
      console.log('Tables created/verified successfully!');
      await connection.end();
-     return; // Success - exit retry loop
+     return; 
      
    } catch (error) {
      console.error(`Database connection failed (attempt ${i + 1}):`, error.message);
-     
+     a
      if (i < retries - 1) {
        console.log('Retrying in 5 seconds...');
        await new Promise(r => setTimeout(r, 5000));
@@ -123,7 +137,6 @@ async function initDatabase(retries = 10) {
    }
  }
 }
-
 // auth token 
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -274,8 +287,5 @@ app.post('/api/login', async (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server on http://localhost:3000');
-  initDatabase(); // Wait 40 seconds
+  initDatabase();
 });
-
-
-
