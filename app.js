@@ -274,6 +274,7 @@ app.post('/api/login', async (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server on http://localhost:3000');
-  setTimeout(initDatabase, 40000); // Wait 10 seconds
+  setTimeout(initDatabase, 40000); // Wait 40 seconds
 });
+
 
