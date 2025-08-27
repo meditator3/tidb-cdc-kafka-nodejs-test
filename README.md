@@ -6,7 +6,7 @@ app is under localhost:3000
 
 
 user: default_user
-password: some_password
+password: default_password
 
 api routes /api/register   /api/login
 
