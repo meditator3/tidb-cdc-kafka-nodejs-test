@@ -71,7 +71,7 @@ startConsumer().catch(console.error);
 // start connection with testdb 
 async function getConnection() {
   return mysql.createConnection({
-    host: 'tidb-server',
+    host: 'tidb',
     port: 4000,
     user: 'root',
     password: '',
@@ -262,4 +262,5 @@ app.post('/api/login', async (req, res) => {
 app.listen(3000, () => {
   console.log('Server on http://localhost:3000');
   setTimeout(initDatabase, 10000); // Wait 10 seconds
+
 });
