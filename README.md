@@ -3,6 +3,7 @@ to run:
 docker compose up -d
 
 app is under localhost:3000
+
 api routes /api/register   /api/login
 
 explained:
