@@ -158,9 +158,12 @@ services:
     entrypoint: >
       bash -c "
       sleep 30 &&
-      ping -c 3 tidb &&
+      echo 'Testing connection...' &&
+      mysql -h tidb -P4000 -uroot -e 'SHOW DATABASES;' &&
+      echo 'Running init script...' &&
       mysql -h tidb -P4000 -uroot < /init-db.sql &&
-      echo 'Database initialized successfully!' &&
+      echo 'Checking if database was created...' &&
+      mysql -h tidb -P4000 -uroot -e 'SHOW DATABASES;' &&
       tail -f /dev/null
       "
     depends_on:
@@ -174,4 +177,5 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
+
 
