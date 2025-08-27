@@ -102,7 +102,19 @@ services:
       - tidb-net
     volumes:
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  
-
+  init-tidb:
+    image: pingcap/tidb:latest
+    depends_on:
+      - tidb-server
+    volumes:
+      - ./init-db.sql:/init-db.sql
+    entrypoint: ["sh", "-c"]
+    command: >
+      "until nc -z tidb-server 4000; do sleep 1; done;
+      mysql -h tidb-server -P4000 -uroot < /init-db.sql"
+    networks:
+      - tidb-net
+      
   ticdc:
     build:
       context: ./
@@ -163,3 +175,4 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
+
