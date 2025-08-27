@@ -102,19 +102,7 @@ services:
       - tidb-net
     volumes:
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql  
-  # init DB container
-  init-tidb:
-    image: mysql:8.0
-    depends_on:
-      - tidb
-    volumes:
-      - ./init-db.sql:/init-db.sql
-    command: >
-      sh -c "sleep 20 &&
-      mysql -h tidb-server -P4000 -uroot < /init-db.sql"
-    networks:
-      - tidb-net
-
+  
 
   ticdc:
     build:
@@ -161,24 +149,24 @@ services:
     networks:
       - tidb-net
 
-  # MySQL client for easy database access(no mysql client in default tidb)
+  # MySQL client for easy database access(no mysql client in default tidb) + init the DB
   mysql-client:
     image: mysql:8.0
     container_name: tidb-mysql-client
-    command: tail -f /dev/null  # Keep container running
     volumes:
-    - ./init-db.sql:/init-db.sql
+      - ./init-db.sql:/init-db.sql
     entrypoint: >
       bash -c "
-      sleep 25 &&
+      sleep 30 &&
+      ping -c 3 tidb &&
       mysql -h tidb -P4000 -uroot < /init-db.sql &&
       echo 'Database initialized successfully!' &&
       tail -f /dev/null
       "
-      depends_on:
-        - tidb
-      networks:
-        - tidb-net
+    depends_on:
+      - tidb
+    networks:
+      - tidb-net
 volumes:
   pd_data:
   tikv_data:
