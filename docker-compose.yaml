@@ -142,7 +142,7 @@ services:
       - /app/node_modules
     
     depends_on:
-      - init-tidb
+      - mysql-client
       - tidb
       - kafka
       
@@ -174,3 +174,4 @@ volumes:
 networks:
   tidb-net:
     driver: bridge
+
