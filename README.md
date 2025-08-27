@@ -2,6 +2,9 @@
 to run:
 docker compose up -d
 
+app is under localhost:3000
+api routes /api/register   /api/login
+
 explained:
 compose raises 4 tidb containers - pd(manager), tikv(storage layer), tidb(the mysql server) and tiCDC  which is handling interception of db changes using kafka
 + 2 kafka containers (kafka+zookeeper)
